@@ -1,0 +1,9 @@
+torch
+git+https://github.com/huggingface/transformers
+git+https://github.com/huggingface/accelerate
+qwen-vl-utils
+Pillow
+pandas
+torchvision
+pandas
+requests
