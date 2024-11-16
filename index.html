@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Extraction from Images</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Text Extraction from Product Images</h1>
+        <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept="image/*">
+            <br>  <br><button type="submit">Start Feature Extraction</button><br><br>
+        </form>
+        <button id="open-camera">Open Camera</button>
+        <button id="start" style="display:none;">Start</button><br>
+        <h2>Extracted Text:</h2>
+        <pre id="extracted-text">{{ extracted_text }}</pre>
+        <video id="video" width="640" height="480" style="display:none;" autoplay></video>
+        <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+        <button id="capture" style="display:none;">Capture Image</button>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+        const openCameraButton = document.getElementById('open-camera');
+        const captureButton = document.getElementById('capture');
+        const startButton = document.getElementById('start');
+        const extractedTextDisplay = document.getElementById('extracted-text');
+        let currentImageSource = null; // To track the source of the image
+
+        // Access the device camera and stream to video element
+        openCameraButton.addEventListener('click', () => {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then((stream) => {
+                    video.srcObject = stream;
+                    video.style.display = 'block';
+                    captureButton.style.display = 'block';
+                    startButton.style.display = 'block';
+                    currentImageSource = 'webcam'; // Set the source to webcam
+                });
+        });
+
+        // Capture the photo
+        captureButton.addEventListener('click', () => {
+            context.drawImage(video, 0, 0, 640, 480);
+            currentImageSource = 'canvas'; // Set the source to canvas
+        });
+
+        // Start the extraction process
+        startButton.addEventListener('click', () => {
+            if (currentImageSource === 'webcam') {
+                // Capture the image from the video stream
+                context.drawImage(video, 0, 0, 640, 480);
+                const imageData = canvas.toDataURL('image/png');
+                sendImageToServer(imageData);
+            } else if (currentImageSource === 'canvas') {
+                // Capture the image from the canvas
+                const imageData = canvas.toDataURL('image/png');
+                sendImageToServer(imageData);
+            } else {
+                alert('Please upload a file or open the camera first.');
+            }
+        });
+
+        // Function to send the captured image to the server for text extraction
+        function sendImageToServer(imageData) {
+            fetch('/capture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image: imageData }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                extractedTextDisplay.textContent = data.extracted_text;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
+</body>
+</html>
